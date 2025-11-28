@@ -10,7 +10,7 @@ https://www.cncf.io/blog/2023/05/17/securing-cloud-native-microservices-with-rol
 
 ## Dependencies
 
-First, we add the necessary Spring Boot starters for Security and OAuth2 in `pom.xml`:
+The following Spring Boot starters for Security and OAuth2 are included in `pom.xml`:
 
 ```xml
 <dependency>
