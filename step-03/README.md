@@ -132,8 +132,15 @@ We can now access the authenticated user's information in our WebSocket handler.
     mvn spring-boot:run
     ```
 3.  Open your browser at [http://localhost:8080](http://localhost:8080).
-4.  You will be redirected to the Keycloak login page. Log in with `alice` / `alice`.
-5.  You should see the personalized welcome message.
+4.  You will be redirected to the Keycloak login page.
+
+    ![login.png](./../docs/images/login.png)
+
+5.  Log in with the pre-configured users:
+    -   **alice** / **alice**
+    -   **bob** / **bob**
+
+6.  You should see the personalized welcome message.
 
 ## Next Step
 
