@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.lang.NonNull;
 
 
 @Component
@@ -16,14 +17,16 @@ public class ChatBotWebSocketHandler extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+    public void afterConnectionEstablished(@NonNull WebSocketSession session) throws Exception {
         String welcomeMessage = "Hi! Welcome to your personal Spring Boot chat bot. What can I do for you?";
         session.sendMessage(new TextMessage(welcomeMessage));
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+    protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage message) throws Exception {
         String response = chatBot.chat(message.getPayload());
-        session.sendMessage(new TextMessage(response));
+        if (response != null) {
+            session.sendMessage(new TextMessage(response));
+        }
     }
 }
