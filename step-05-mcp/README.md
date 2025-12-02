@@ -93,92 +93,62 @@ logging.level.dev.langchain4j=DEBUG
 We now created a MCP server that can be used by other languages.
 But we need to make sure that only authorized users can use it.
 
-```properties
-quarkus.http.auth.permission.authenticated.paths=/mcp/sse
-quarkus.http.auth.permission.authenticated.policy=authenticated
+In your Spring Security configuration (e.g., `SecurityConfig.java`), ensure that the MCP endpoints are authenticated:
+
+```java
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/mcp/**").authenticated()
+            .anyRequest().permitAll()
+        )
+        .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+    return http.build();
+}
 ```
 
-Furthermore, you can use the `@RolesAllowed` annotation on the tool to restrict access to specific roles if needed.
+Furthermore, you can use the `@PreAuthorize` annotation on the tool to restrict access to specific roles if needed.
 
 After enabling authentication we now need a bearer token to access the MCP server.
-You can obtain one for testing through the Quarkus Dev UI
-
-![dev-ui-openid-connect.png](./../docs/images/dev-ui-openid-connect.png)
-
-http://localhost:8081/q/dev-ui/quarkus-oidc/keycloak-provider
-
-![dev-ui-keycloak.png](./../docs/images/dev-ui-keycloak-provider.png)
-
-Sign in with either `alice:alice` or `bob:bob` and copy the access token.
-
-Finally, you can use the access token to access the MCP server:
-
-![mcp-inspector.png](./../docs/images/mcp-inspector.png)
-
-### Token propagation
-
-If the weather REST API is protected by Keycloak you can use the `quarkus-rest-client-oidc-token-propagation` extension
-to propagate the token to the weather client.
-
-```xml
-
-<dependency>
-    <groupId>io.quarkus</groupId>
-    <artifactId>quarkus-rest-client-oidc-token-propagation</artifactId>
-</dependency>
-```
-
-And annotate the weather client with the `@AccessToken`, see https://quarkus.io/guides/security-openid-connect-client
-For our use case that is not needed right now.
+You can obtain one for testing through the Keycloak Admin Console or by logging in to the client app.
 
 ### MCP Client
 
 Now that we have the MCP server with authentication we can use it from our AI agent.
-Go back to the original AI agent project and add the following extension:
+Go back to the original AI agent project (this project) and add the following dependency (if not already present):
 
 ```xml
-
 <dependency>
-    <groupId>io.quarkiverse.langchain4j</groupId>
-    <artifactId>quarkus-langchain4j-mcp</artifactId>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j-mcp</artifactId>
+    <version>1.0.0-beta1</version>
 </dependency>
 ```
 
-To use it you only need to add the following configuration:
-
-```properties
-quarkus.langchain4j.mcp.weather.transport-type=http
-quarkus.langchain4j.mcp.weather.url=http://localhost:8081/mcp/sse/
-```
-
-And tell the AI agent to use the `weather` tool:
+To use it, you need to configure the `McpClient`. Create a configuration class (e.g., `McpConfig.java`):
 
 ```java
-import io.quarkiverse.langchain4j.mcp.runtime.McpToolBox;
+@Configuration
+public class McpConfig {
 
-@McpToolBox("weather")
+    @Bean
+    public McpClient weatherMcpClient() {
+        // Replace with your MCP server URL
+        String mcpUrl = "http://localhost:8081/mcp/sse"; 
+        return new McpClient.Builder()
+                .transport(new HttpMcpTransport(mcpUrl))
+                .build();
+    }
+    
+    // You will also need to register this tool with your AI Service
+}
 ```
 
 ### MCP Client with authentication
 
-Next we also need another extensions to automatically propagate the acces token to the MCP server:
-
-```xml
-
-<dependency>
-    <groupId>io.quarkiverse.langchain4j</groupId>
-    <artifactId>quarkus-langchain4j-oidc-mcp-auth-provider</artifactId>
-</dependency>
-```
-
-This extension provides an instance of the `McpClientAuthProvider`,
-see https://docs.quarkiverse.io/quarkus-langchain4j/dev/mcp.html#_authorization
-
-You should also disable the OIDC devservices so it we use the shared Keycloak devservices for both application:
-
-```java
-quarkus.oidc.devservices.enabled=false
-```
+If the MCP server requires authentication, you need to provide the access token.
+You can implement a custom `McpTransport` or interceptor to inject the token.
 
 ### Run the AI agent
 
